@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/encryptor_decryptor
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=zx2002MP
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16.4
+    environment:
+      POSTGRES_DB: encryptor_decryptor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: zx2002MP
+    ports:
+      - "5432:5432"
