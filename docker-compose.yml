@@ -8,7 +8,7 @@ services:
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/encryptor_decryptor
       - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=zx2002MP
+      - SPRING_DATASOURCE_PASSWORD=mohit123
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
     depends_on:
       - db
@@ -18,7 +18,7 @@ services:
     environment:
       POSTGRES_DB: encryptor_decryptor
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: zx2002MP
+      POSTGRES_PASSWORD: mohit123
     ports:
       - "5432:5432"
 
