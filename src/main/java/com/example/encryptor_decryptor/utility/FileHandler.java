@@ -5,18 +5,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.security.Key;
-import java.util.Base64;
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class FileHandler {
@@ -30,20 +24,32 @@ public class FileHandler {
     }
 
     public String encryptFile(MultipartFile file) throws Exception {
-        Path encryptedFilePath = Paths.get(uploadDir, file.getOriginalFilename() + ".enc");
-        encryptFile(file, encryptedFilePath, secretKey);
+        // Compress the file first
+        Path compressedFilePath = compressFile(file);
+        Path encryptedFilePath = Paths.get(uploadDir, compressedFilePath.getFileName() + ".enc");
+
+        // Encrypt the compressed file
+        encryptFile(Files.newInputStream(compressedFilePath), encryptedFilePath, secretKey);
+
+        Files.deleteIfExists(compressedFilePath); // Clean up compressed file
         return encryptedFilePath.toString();
     }
 
     public String decryptFile(MultipartFile file) throws Exception {
-        Path decryptedFilePath = Paths.get(uploadDir, file.getOriginalFilename().replace(".enc", ""));
-        decryptFile(file, decryptedFilePath, secretKey);
-        return decryptedFilePath.toString();
+        Path decryptedFilePath = Paths.get(uploadDir, file.getOriginalFilename().replace(".enc", ".zip"));
+
+        // Decrypt the encrypted file
+        decryptFile(file.getInputStream(), decryptedFilePath, secretKey);
+
+        // Decompress the decrypted file
+        Path decompressedFilePath = decompressFile(decryptedFilePath);
+
+        Files.deleteIfExists(decryptedFilePath); // Clean up decrypted zip file
+        return decompressedFilePath.toString();
     }
 
-    private void encryptFile(MultipartFile file, Path encryptedFilePath, Key key) throws Exception {
-        try (InputStream inputStream = file.getInputStream();
-             OutputStream outputStream = Files.newOutputStream(encryptedFilePath)) {
+    private void encryptFile(InputStream inputStream, Path encryptedFilePath, Key key) throws Exception {
+        try (OutputStream outputStream = Files.newOutputStream(encryptedFilePath)) {
             byte[] buffer = new byte[4096];
             int bytesRead;
             Cipher cipher = Cipher.getInstance("AES");
@@ -57,9 +63,8 @@ public class FileHandler {
         }
     }
 
-    private void decryptFile(MultipartFile file, Path decryptedFilePath, Key key) throws Exception {
-        try (InputStream inputStream = file.getInputStream();
-             OutputStream outputStream = Files.newOutputStream(decryptedFilePath)) {
+    private void decryptFile(InputStream inputStream, Path decryptedFilePath, Key key) throws Exception {
+        try (OutputStream outputStream = Files.newOutputStream(decryptedFilePath)) {
             byte[] buffer = new byte[4096];
             int bytesRead;
             Cipher cipher = Cipher.getInstance("AES");
@@ -71,6 +76,43 @@ public class FileHandler {
             }
             outputStream.write(cipher.doFinal());
         }
+    }
+
+    private Path compressFile(MultipartFile file) throws IOException {
+        Path compressedFilePath = Paths.get(uploadDir, file.getOriginalFilename() + ".zip");
+        try (InputStream inputStream = file.getInputStream();
+             ZipOutputStream zipOutputStream = new ZipOutputStream(Files.newOutputStream(compressedFilePath))) {
+
+            ZipEntry zipEntry = new ZipEntry(file.getOriginalFilename());
+            zipOutputStream.putNextEntry(zipEntry);
+
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                zipOutputStream.write(buffer, 0, bytesRead);
+            }
+            zipOutputStream.closeEntry();
+        }
+        return compressedFilePath;
+    }
+
+    private Path decompressFile(Path compressedFilePath) throws IOException {
+        Path decompressedFilePath = Paths.get(uploadDir, compressedFilePath.getFileName().toString().replace(".zip", ""));
+
+        try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(compressedFilePath))) {
+            ZipEntry zipEntry = zipInputStream.getNextEntry();
+            if (zipEntry != null) {
+                try (OutputStream outputStream = Files.newOutputStream(decompressedFilePath)) {
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    while ((bytesRead = zipInputStream.read(buffer)) != -1) {
+                        outputStream.write(buffer, 0, bytesRead);
+                    }
+                }
+                zipInputStream.closeEntry();
+            }
+        }
+        return decompressedFilePath;
     }
 
     private Key generateSecretKey() throws Exception {
@@ -90,4 +132,3 @@ public class FileHandler {
         }
     }
 }
-

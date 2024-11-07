@@ -7,12 +7,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/files")
@@ -25,9 +19,11 @@ public class FileController {
         this.fileHandler = fileHandler;
     }
 
+    // Endpoint for encryption (includes compression before encryption)
     @PostMapping("/encrypt")
     public ResponseEntity<String> encryptFile(@RequestParam("file") MultipartFile file) {
         try {
+            // Calls the encryptFile method in FileHandler, which handles compression before encryption
             String encryptedFilePath = fileHandler.encryptFile(file);
             return ResponseEntity.ok("File encrypted successfully! Saved at: " + encryptedFilePath);
         } catch (Exception e) {
@@ -35,9 +31,11 @@ public class FileController {
         }
     }
 
+    // Endpoint for decryption (includes decompression after decryption)
     @PostMapping("/decrypt")
     public ResponseEntity<String> decryptFile(@RequestParam("file") MultipartFile file) {
         try {
+            // Calls the decryptFile method in FileHandler, which handles decompression after decryption
             String decryptedFilePath = fileHandler.decryptFile(file);
             return ResponseEntity.ok("File decrypted successfully! Saved at: " + decryptedFilePath);
         } catch (Exception e) {
