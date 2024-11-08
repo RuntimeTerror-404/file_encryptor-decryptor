@@ -11,9 +11,13 @@ import java.security.Key;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class FileHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(FileHandler.class);
 
     private final String uploadDir = "C:/Personal/Tools/Java_Projects/encryptor_decryptor/files";
     private final Key secretKey;
@@ -21,6 +25,7 @@ public class FileHandler {
     public FileHandler() throws Exception {
         createDirectoryIfNotExists(uploadDir);
         this.secretKey = generateSecretKey();
+        logger.info("FileHandler initialized. Upload directory: {}", uploadDir);
     }
 
     public String encryptFile(MultipartFile file) throws Exception {
@@ -28,8 +33,12 @@ public class FileHandler {
         Path compressedFilePath = compressFile(file);
         Path encryptedFilePath = Paths.get(uploadDir, compressedFilePath.getFileName() + ".enc");
 
+        logger.info("Encrypting file: {}", compressedFilePath.getFileName());
+
         // Encrypt the compressed file
         encryptFile(Files.newInputStream(compressedFilePath), encryptedFilePath, secretKey);
+
+        logger.info("File encrypted successfully: {}", encryptedFilePath);
 
         Files.deleteIfExists(compressedFilePath); // Clean up compressed file
         return encryptedFilePath.toString();
@@ -37,9 +46,12 @@ public class FileHandler {
 
     public String decryptFile(MultipartFile file) throws Exception {
         Path decryptedFilePath = Paths.get(uploadDir, file.getOriginalFilename().replace(".enc", ".zip"));
+        logger.info("Decrypting file: {}", file.getOriginalFilename());
 
         // Decrypt the encrypted file
         decryptFile(file.getInputStream(), decryptedFilePath, secretKey);
+
+        logger.info("File decrypted successfully: {}", decryptedFilePath);
 
         // Decompress the decrypted file
         Path decompressedFilePath = decompressFile(decryptedFilePath);
