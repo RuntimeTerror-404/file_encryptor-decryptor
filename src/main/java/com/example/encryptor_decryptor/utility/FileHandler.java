@@ -1,5 +1,7 @@
 package com.example.encryptor_decryptor.utility;
 
+import com.example.encryptor_decryptor.FileMetadata;
+import com.example.encryptor_decryptor.MetadataManager;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +20,7 @@ import org.slf4j.LoggerFactory;
 public class FileHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(FileHandler.class);
+    private MetadataManager metadataManager = new MetadataManager();
 
     private final String uploadDir = "C:/Personal/Tools/Java_Projects/encryptor_decryptor/files";
     private final Key secretKey;
@@ -33,6 +36,16 @@ public class FileHandler {
         Path compressedFilePath = compressFile(file);
         Path encryptedFilePath = Paths.get(uploadDir, compressedFilePath.getFileName() + ".enc");
 
+        // Store metadata
+        FileMetadata metadata = new FileMetadata();
+        metadata.setFileName(file.getOriginalFilename());
+        metadata.setFileSize(file.getSize());
+        metadata.setFileType(file.getContentType());
+        metadata.setEncryptionStatus("Encrypted");
+        metadata.setPath(encryptedFilePath.toString());
+
+        metadataManager.addMetadata(metadata);
+
         logger.info("Encrypting file: {}", compressedFilePath.getFileName());
 
         // Encrypt the compressed file
@@ -47,6 +60,16 @@ public class FileHandler {
     public String decryptFile(MultipartFile file) throws Exception {
         Path decryptedFilePath = Paths.get(uploadDir, file.getOriginalFilename().replace(".enc", ".zip"));
         logger.info("Decrypting file: {}", file.getOriginalFilename());
+
+        // Store metadata
+        FileMetadata metadata = new FileMetadata();
+        metadata.setFileName(file.getOriginalFilename());
+        metadata.setFileSize(file.getSize());
+        metadata.setFileType(file.getContentType());
+        metadata.setEncryptionStatus("Decrypted");
+        metadata.setPath(decryptedFilePath.toString());
+
+        metadataManager.addMetadata(metadata);
 
         // Decrypt the encrypted file
         decryptFile(file.getInputStream(), decryptedFilePath, secretKey);
